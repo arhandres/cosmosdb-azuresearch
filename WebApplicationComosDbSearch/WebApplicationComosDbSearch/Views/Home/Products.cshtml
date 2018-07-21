@@ -1,0 +1,134 @@
+﻿
+@{
+    ViewBag.Title = "Products";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Products</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <form id="productsForm">
+            @*<div class="form-group">
+                <label>ID:</label>
+                <input type="text" class="form-control" name="id" />
+            </div>*@
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" class="form-control" name="name" />
+            </div>
+            <div class="form-group">
+                <label>Description:</label>
+                <textarea class="form-control" name="description"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Price:</label>
+                <input type="number" class="form-control" name="price" />
+            </div>
+            <div class="form-group">
+                <button class="btn btn-info btn-block" id="saveButton" type="button">Save</button>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-6">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="form-group" style="padding-top: 24px;">
+                    <input type="text" class="form-control" id="searchTextBox" />
+                </div>
+            </div>
+            <div class="col-md-4" style="padding-top: 25px;">
+                <button class="btn btn-info">
+                    Search
+                </button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <ul class="media-list" id="productsList"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/html" id="productItemTemplate">
+    <li class="media product-item">
+        <div class="media-body">
+            <h4 class="media-heading"><%= Name %></h4>
+            <p><strong>Description:</strong> <%= Description %></p>
+            <p><strong>Price:</strong> <%= Price %></p>
+        </div>
+    </li>
+</script>
+
+@section scripts
+{
+    <script src="~/Scripts/underscore-min.js"></script>
+    <script type="text/javascript">
+
+        var getFormData = function (selector) {
+            var $form = $(selector);
+            var unindexed_array = $form.serializeArray();
+            var indexed_array = {};
+
+            $.map(unindexed_array, function (n, i) {
+                indexed_array[n['name']] = n['value'];
+            });
+
+            return indexed_array;
+        }
+
+        var search = function (phrase) {
+            $.ajax({
+                url: '@Url.Action("Search", "Search")',
+                data: { phrase: phrase },
+                success: function (reply) {
+
+                    var html = '';
+                    var productTemplate = _.template($("#productItemTemplate").html());
+
+                    if (reply.Results.length > 0) {
+
+                        $.each(reply.Results, function (index, value) {
+                            html += productTemplate(value.Document);
+                        });
+
+                        $("#productsList").html(html);
+                    }
+                }
+            });
+        };
+
+        var createProduct = function () {
+            var data = getFormData('#productsForm');
+
+            $.ajax({
+                url:'@Url.Action("Create", "Product")',
+                dataType: "json",
+                contentType: "application/json;charset=utf-8",
+                type: "POST",
+                data: JSON.stringify(data),
+                success: function (reply) {
+                    if (reply.Success === true) {
+                        $('#productsForm')[0].reset();
+                    }
+
+                    $(this).val('');
+                    search();
+                }
+            });
+        };
+
+        $(function () {
+            $("#saveButton").click(function () {
+                createProduct();
+            });
+
+            $('#searchTextBox').keypress(function (e) {
+                if (e.which == 13) {
+                    search($.trim($(this).val()));
+                }
+            });
+        });
+    </script>
+}
